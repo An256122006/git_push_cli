@@ -1,0 +1,30 @@
+{
+  "name": "git-push-time",
+  "version": "1.0.0",
+  "description": "CLI tool to push project to Git with custom repo URL and custom commit timestamp",
+  "main": "bin/index.js",
+  "type": "module",
+  "bin": {
+    "git-push-time": "./bin/index.js",
+    "git-custom-push": "./bin/index.js"
+  },
+  "scripts": {
+    "start": "node bin/index.js"
+  },
+  "keywords": [
+    "git",
+    "push",
+    "commit-date",
+    "backdate",
+    "cli"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@inquirer/prompts": "^7.3.2",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "dayjs": "^1.11.13",
+    "ora": "^8.2.0"
+  }
+}
