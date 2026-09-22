@@ -41,7 +41,15 @@ import {
   printPrePushSecretWarning,
   printSecretBlockedBox,
   printSuccessBox,
-  printCancelled
+  printCancelled,
+  printErrorBox,
+  printGitMissing,
+  printAuthFailedBox,
+  printNonFastForwardBox,
+  printFixResult,
+  printNpmResult,
+  printFooter,
+  styleCliHelp
 } from '../lib/ui.js';
 
 const VERSION = '1.0.0';
@@ -52,10 +60,8 @@ async function run(options = {}) {
 
   // 1. Kiểm tra Git
   if (!checkGitInstalled()) {
-    console.log(chalk.redBright('\n  ╭────────────────────────────────────────────────────────────╮'));
-    console.log(chalk.redBright('  │  ❌  Chưa cài đặt Git. Hãy cài Git rồi chạy lại tool nhé!      │'));
-    console.log(chalk.redBright('  │     👉 https://git-scm.com/downloads                         │'));
-    console.log(chalk.redBright('  ╰────────────────────────────────────────────────────────────╯\n'));
+    printBanner(VERSION);
+    printGitMissing();
     process.exit(1);
   }
 
@@ -136,14 +142,15 @@ async function run(options = {}) {
   if (!branchName) branchName = 'main';
 
   if (!repoUrl || !isValidGitUrl(repoUrl)) {
-    console.error(chalk.red(`\n  ❌ URL repository '${repoUrl}' không hợp lệ!`));
-    console.log(chalk.gray('  👉 Ví dụ đúng: https://github.com/username/repository.git\n'));
+    printErrorBox('URL REPOSITORY KHÔNG HỢP LỆ', [
+      `URL nhận được: '${repoUrl || '(trống)'}'`,
+    ], 'Ví dụ đúng: https://github.com/username/repository.git');
     process.exit(1);
   }
 
   const parsedDate = parseCustomDate(dateInput);
   if (!parsedDate.valid) {
-    console.error(chalk.red(`\n  ❌ ${parsedDate.error}\n`));
+    printErrorBox('THỜI GIAN KHÔNG HỢP LỆ', [parsedDate.error], 'VD: now, -2d, -5h, 2024-01-15 14:30:00');
     process.exit(1);
   }
 
@@ -176,20 +183,20 @@ async function run(options = {}) {
     if (!isGitRepo()) {
       spinner.start(stepLabel(1, TOTAL_STEPS, 'Khởi tạo Git repo (git init)…'));
       initGitRepo();
-      spinner.succeed(chalk.green('✓ [1/6] Đã khởi tạo Git repo'));
+      spinner.succeed(stepLabel(1, TOTAL_STEPS, chalk.hex('#34D399')('Đã khởi tạo Git repo')));
     } else {
-      console.log(chalk.gray('  ✓ [1/6] Đã có Git repo sẵn — bỏ qua git init'));
+      console.log('  ' + stepLabel(1, TOTAL_STEPS, chalk.hex('#64748B')('Đã có Git repo sẵn — bỏ qua init')));
     }
 
     // [2/6] Remote
     spinner.start(stepLabel(2, TOTAL_STEPS, 'Cấu hình remote origin…'));
     setGitRemote(repoUrl);
-    spinner.succeed(chalk.green('✓ [2/6] Remote origin đã xong'));
+    spinner.succeed(stepLabel(2, TOTAL_STEPS, chalk.hex('#34D399')('Cấu hình remote origin hoàn tất')));
 
     // [3/6] Stage
     spinner.start(stepLabel(3, TOTAL_STEPS, 'Stage files (git add .)…'));
     stageAllFiles();
-    spinner.succeed(chalk.green('✓ [3/6] Đã stage tất cả files'));
+    spinner.succeed(stepLabel(3, TOTAL_STEPS, chalk.hex('#34D399')('Đã stage toàn bộ files')));
 
     // [3.5] Quét secret: tên file + nội dung
     const risky = findRiskyStagedFiles();
@@ -210,20 +217,8 @@ async function run(options = {}) {
       if (wantFix) {
         spinner.start('Đang tự fix: gỡ file secret khỏi stage…');
         const res = autoFixStagedSecrets(allFiles);
-        spinner.succeed(chalk.green(`✓ Đã gỡ ${res.fixed.length} file khỏi commit`));
-        if (res.fixed.length > 0) {
-          console.log(chalk.gray(`   Gỡ: ${res.fixed.join(', ')}`));
-        }
-        if (res.gitignoreAdded.length > 0) {
-          console.log(chalk.gray(`   + .gitignore: ${res.gitignoreAdded.join(', ')}`));
-        }
-        if (res.codeFilesWithSecrets && res.codeFilesWithSecrets.length > 0) {
-          console.log(chalk.yellowBright(`   ⚠️ File mã nguồn chứa secret trong code (đã gỡ khỏi commit, không đưa vào .gitignore):`));
-          res.codeFilesWithSecrets.forEach((f) => console.log(chalk.yellow(`      • ${f}`)));
-        }
-        if (res.failed.length > 0) {
-          res.failed.forEach((f) => console.log(chalk.red(`   ✗ ${f.file}: ${f.reason}`)));
-        }
+        spinner.succeed(chalk.hex('#34D399')(`✓ Đã gỡ ${res.fixed.length} file khỏi commit`));
+        printFixResult(res);
 
         // Đảm bảo .gitignore được stage trước khi kiểm tra hasStagedChanges
         try {
@@ -232,11 +227,13 @@ async function run(options = {}) {
         } catch { /* bỏ qua */ }
 
         if (!hasStagedChanges()) {
-          console.log(chalk.yellow('\n  ⚠️  Sau khi gỡ secret thì không còn file nào để commit.'));
-          console.log(chalk.gray('  File secret vẫn nằm ở máy bạn, chỉ là không push lên nữa. Tool dừng ở đây.\n'));
+          printErrorBox('KHÔNG CÒN FILE ĐỂ COMMIT', [
+            'Sau khi gỡ secret thì không còn file nào để commit.',
+            'File secret vẫn nằm ở máy bạn, chỉ là không push lên nữa.',
+          ]);
           process.exit(0);
         }
-        console.log(chalk.green('  → Tiếp tục commit/push phần sạch còn lại.\n'));
+        console.log(chalk.hex('#34D399')('  → Tiếp tục commit/push phần sạch còn lại.\n'));
       } else if (isInteractive) {
         const keepGoing = await confirm({
           message: findings.length > 0
@@ -259,21 +256,21 @@ async function run(options = {}) {
     // [4/6] Commit
     spinner.start(stepLabel(4, TOTAL_STEPS, `Tạo commit [${parsedDate.display}]…`));
     if (!hasChangesToCommit()) {
-      spinner.info(chalk.gray('○ [4/6] Không có thay đổi mới — dùng commit hiện có'));
+      spinner.info(stepLabel(4, TOTAL_STEPS, chalk.hex('#94A3B8')('Không có thay đổi mới — dùng commit hiện có')));
     } else {
       commitWithCustomDate(commitMsg, parsedDate.formatted);
-      spinner.succeed(chalk.green(`✓ [4/6] Commit xong  •  ${chalk.bold(parsedDate.display)}`));
+      spinner.succeed(stepLabel(4, TOTAL_STEPS, chalk.hex('#34D399')(`Commit hoàn tất  •  ${chalk.hex('#C084FC').bold(parsedDate.display)}`)));
     }
 
     // [5/6] Branch
     spinner.start(stepLabel(5, TOTAL_STEPS, `Đổi branch → '${branchName}'…`));
     setBranchName(branchName);
-    spinner.succeed(chalk.green(`✓ [5/6] Branch: ${branchName}`));
+    spinner.succeed(stepLabel(5, TOTAL_STEPS, chalk.hex('#34D399')(`Branch: ${chalk.hex('#5EEAD4').bold(branchName)}`)));
 
     // [6/6] Push
     spinner.start(stepLabel(6, TOTAL_STEPS, `Push lên origin/${branchName}…`));
     pushToRemote(branchName, options.force);
-    spinner.succeed(chalk.bold.green('✓ [6/6] Push thành công'));
+    spinner.succeed(stepLabel(6, TOTAL_STEPS, chalk.bold.hex('#34D399')('Push lên remote thành công!')));
 
     printSuccessBox({ branch: branchName, repoUrl });
 
@@ -287,6 +284,8 @@ async function run(options = {}) {
     }
     if (wantPublish) {
       await runNpmPublish({ access: options.access, dryRun: options.dryRun, isInteractive });
+    } else {
+      printFooter();
     }
   } catch (error) {
     spinner.stop();
@@ -314,6 +313,7 @@ async function run(options = {}) {
               pushToRemote(branchName, options.force);
               spinner.succeed(chalk.bold.green('✓ Push thành công'));
               printSuccessBox({ branch: branchName, repoUrl });
+              printFooter();
               return;
             } catch (retryErr) {
               spinner.fail(chalk.red(`Push lại thất bại: ${retryErr.message}`));
@@ -324,18 +324,13 @@ async function run(options = {}) {
         }
       }
     } else if (error.code === 'AUTH_FAILED') {
-      console.log(chalk.redBright('\n  ╭────────────────────────────────────────────────────────────╮'));
-      console.log(chalk.redBright('  │  🔒  LỖI XÁC THỰC GIT                                      │'));
-      console.log(chalk.redBright('  ╰────────────────────────────────────────────────────────────╯'));
-      console.log(chalk.gray('  ' + String(error.message).split('\n')[0]));
-      console.log(chalk.cyan('\n  👉 Thử: gh auth login / tạo Personal Access Token mới / dùng SSH.\n'));
+      printAuthFailedBox(error.message);
     } else if (error.code === 'NON_FAST_FORWARD') {
-      console.log(chalk.redBright('\n  ⚠️  Remote đã có commit mới hơn local.'));
-      console.log(chalk.gray('  ' + String(error.message).split('\n')[0]));
-      console.log(chalk.cyan(`\n  👉 Chạy: git pull --rebase origin ${branchName} rồi push lại.`));
-      console.log(chalk.gray('     Chỉ dùng --force khi chắc chắn muốn ghi đè.\n'));
+      printNonFastForwardBox(error.message, branchName);
+    } else if (error.code === 'REMOTE_OR_NETWORK') {
+      printErrorBox('LỖI KẾT NỐI REMOTE', [String(error.message).split('\n')[0]], 'Kiểm tra URL repo, mạng, và quyền truy cập.');
     } else {
-      console.error(chalk.red(`\n  ❌ Lỗi: ${error.message}\n`));
+      printErrorBox('ĐẨY LÊN GIT THẤT BẠI', [error.message]);
     }
     process.exit(1);
   }
@@ -350,12 +345,12 @@ async function runFixCommand() {
   printSection('🛠️  TỰ ĐỘNG FIX SECRET & BẢO VỆ REPO');
 
   if (!checkGitInstalled()) {
-    console.log(chalk.red('  ❌ Chưa cài Git. Vui lòng cài Git trước.\n'));
+    printGitMissing();
     process.exit(1);
   }
 
   if (!isGitRepo()) {
-    console.log(chalk.red('  ❌ Thư mục này chưa phải là Git repository.\n'));
+    printErrorBox('CHƯA PHẢI GIT REPOSITORY', ['Thư mục này chưa phải là Git repository.'], 'Chạy git init hoặc cd vào đúng thư mục dự án.');
     process.exit(1);
   }
 
@@ -370,41 +365,24 @@ async function runFixCommand() {
   const allDetected = [...new Set([...risky, ...findings.map((f) => f.file), ...riskyWorking])];
 
   if (allDetected.length === 0) {
-    console.log(chalk.green('\n  ✨ Không phát hiện file secret mới ở stage hay thư mục làm việc!'));
+    printSection('✨  KẾT QUẢ QUÉT');
+    console.log(chalk.hex('#34D399')('  ✨ Không phát hiện file secret mới ở stage hay thư mục làm việc!\n'));
   } else {
-    console.log(chalk.yellow(`\n  ⚠️  Phát hiện ${allDetected.length} file nhạy cảm:`));
-    allDetected.forEach((f) => console.log(chalk.gray(`     • ${f}`)));
-
+    printPrePushSecretWarning({ riskyFiles: allDetected, findings });
     spinner.start('Đang tự động fix (gỡ khỏi stage + thêm .gitignore)…');
     const res = autoFixStagedSecrets(allDetected);
-    spinner.succeed(chalk.green(`✓ Đã xử lý xong ${res.fixed.length} file!`));
-
-    if (res.fixed.length > 0) {
-      console.log(chalk.gray(`     Gỡ khỏi stage: ${res.fixed.join(', ')}`));
-    }
-    if (res.gitignoreAdded.length > 0) {
-      console.log(chalk.cyan(`     Thêm vào .gitignore: ${res.gitignoreAdded.join(', ')}`));
-    }
-    if (res.codeFilesWithSecrets && res.codeFilesWithSecrets.length > 0) {
-      console.log(chalk.yellowBright('\n  ⚠️  CHÚ Ý FILE MÃ NGUỒN:'));
-      res.codeFilesWithSecrets.forEach((f) => {
-        console.log(chalk.yellow(`     • ${f}: chứa secret trong nội dung (đã gỡ khỏi stage, KHÔNG add vào .gitignore)`));
-      });
-      console.log(chalk.gray('     👉 Vui lòng mở các file mã nguồn trên để xóa key và thay bằng biến môi trường.\n'));
-    }
-    if (res.failed.length > 0) {
-      res.failed.forEach((f) => console.log(chalk.red(`     ✗ Lỗi gỡ file ${f.file}: ${f.reason}`)));
-    }
+    spinner.succeed(chalk.hex('#34D399')(`✓ Đã xử lý xong ${res.fixed.length} file!`));
+    printFixResult(res);
   }
 
   // Kiểm tra xem có commit chưa push nào bị dính vết secret cũ không
   const currentBranch = getCurrentBranch();
   const unpushed = getUnpushedCommits(currentBranch);
   if (unpushed.length > 0) {
-    console.log(chalk.cyan(`\n  🔍 Phát hiện ${unpushed.length} commit chưa push ở local:`));
-    unpushed.slice(0, 5).forEach((c) => console.log(chalk.gray(`     • ${c}`)));
+    printSection(`🔍  ${unpushed.length} COMMIT CHƯA PUSH`);
+    unpushed.slice(0, 5).forEach((c) => console.log(chalk.hex('#94A3B8')(`     • ${c}`)));
     if (unpushed.length > 5) {
-      console.log(chalk.gray(`     …và ${unpushed.length - 5} commit khác`));
+      console.log(chalk.hex('#64748B')(`     …và ${unpushed.length - 5} commit khác`));
     }
     const okSquash = await confirm({
       message: `🛠️ Bạn có muốn gộp (squash) ${unpushed.length} commit chưa push thành 1 commit sạch để xóa dấu vết secret cũ không?`,
@@ -414,14 +392,14 @@ async function runFixCommand() {
       spinner.start('Đang làm sạch lịch sử commit chưa push…');
       const sq = squashUnpushedCommits(currentBranch, 'Clean commit without secrets');
       if (sq.ok) {
-        spinner.succeed(chalk.green('✓ Đã làm sạch commit chưa push! Sẵn sàng push lên remote.'));
+        spinner.succeed(chalk.hex('#34D399')('✓ Đã làm sạch commit chưa push! Sẵn sàng push lên remote.'));
       } else {
         spinner.fail(chalk.red(`Không thể squash: ${sq.error}`));
       }
     }
   }
 
-  console.log(chalk.bold.green('\n  🎉 Đã hoàn tất kiểm tra và fix!\n'));
+  printSuccessBox({ branch: currentBranch || 'main', repoUrl: 'local repo đã sạch — sẵn sàng push' });
 }
 
 /**
@@ -434,12 +412,12 @@ async function runNpmPublish({ access = 'public', dryRun = false, isInteractive 
   printSection('📦  PUBLISH LÊN NPM');
 
   if (!checkNpmInstalled()) {
-    console.log(chalk.red('  ❌ Chưa cài npm. Cài Node.js từ https://nodejs.org rồi thử lại.\n'));
+    printErrorBox('CHƯA CÀI NPM', ['Chưa phát hiện npm trên máy.'], 'Cài Node.js từ https://nodejs.org rồi thử lại.');
     return;
   }
   const pkg = getPackageInfo();
   if (!pkg) {
-    console.log(chalk.red('  ❌ Không đọc được package.json ở thư mục hiện tại.\n'));
+    printErrorBox('KHÔNG ĐỌC ĐƯỢC PACKAGE.JSON', ['Không tìm thấy package.json ở thư mục hiện tại.'], 'cd vào đúng thư mục dự án rồi chạy lại.');
     return;
   }
   console.log(chalk.gray(`  📦 Package: ${chalk.white(pkg.name)}@${chalk.white(pkg.version)}  •  access: ${access}${dryRun ? '  •  dry-run' : ''}`));
@@ -471,32 +449,31 @@ async function runNpmPublish({ access = 'public', dryRun = false, isInteractive 
   spinner.start(dryRun ? 'Chạy thử npm publish --dry-run…' : `Đang publish ${pkg.name}@${pkg.version}…`);
   const res = publishToNpm({ access, dryRun, cwd: process.cwd() });
   if (res.ok) {
-    spinner.succeed(chalk.bold.green(dryRun ? '✓ Dry-run OK — sẵn sàng publish thật' : `✓ Đã publish ${pkg.name}@${pkg.version} lên npm!`));
-    if (!dryRun) {
-      console.log(chalk.gray(`  👉 Kiểm tra: https://www.npmjs.com/package/${pkg.name.replace(/^@/, '').split('/')[0]}\n`));
-    }
+    spinner.stop();
+    printNpmResult({ ok: true, pkgName: pkg.name, version: pkg.version, dryRun });
+    printFooter();
     return;
   }
 
   spinner.fail(chalk.red('Publish thất bại'));
-  console.log(chalk.gray('  ' + res.output.split('\n').slice(-8).join('\n  ')));
-  console.log(chalk.cyan(`\n  💡 ${res.parsed.hint}`));
+  printNpmResult({ ok: false, pkgName: pkg.name, version: pkg.version, output: res.output, hint: res.parsed.hint, dryRun });
   if (res.parsed.code === 'VERSION_EXISTS' && isInteractive) {
     const bump = await confirm({ message: 'Tự tăng patch version (npm version patch) rồi publish lại?', default: true });
     if (bump) {
       const { execSync } = await import('child_process');
       try {
         execSync('npm version patch --no-git-tag-version', { stdio: 'ignore' });
-        console.log(chalk.green('  ✓ Đã tăng version, chạy lại tool với --publish để publish bản mới.\n'));
+        console.log(chalk.hex('#34D399')('  ✓ Đã tăng version, chạy lại tool với --publish để publish bản mới.\n'));
       } catch {
-        console.log(chalk.red('  ❌ Không tăng được version, kiểm tra package.json.\n'));
+        printErrorBox('KHÔNG TĂNG ĐƯỢC VERSION', ['Kiểm tra lại package.json.']);
       }
     }
   }
-  console.log('');
+  printFooter();
 }
 
 const program = new Command();
+styleCliHelp(program);
 
 program
   .name('git-push-time')
