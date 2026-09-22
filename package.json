@@ -5,6 +5,7 @@
   "main": "bin/index.js",
   "type": "module",
   "bin": {
+    "githubcli": "./bin/index.js",
     "git-push-time": "./bin/index.js",
     "git-custom-push": "./bin/index.js"
   },
