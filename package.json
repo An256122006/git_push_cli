@@ -1,16 +1,19 @@
 {
   "name": "git-push-time",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "CLI tool to push project to Git with custom repo URL and custom commit timestamp",
   "main": "bin/index.js",
   "type": "module",
   "bin": {
-    "githubcli": "./bin/index.js",
-    "git-push-time": "./bin/index.js",
-    "git-custom-push": "./bin/index.js"
+    "githubcli": "bin/index.js",
+    "git-push-time": "bin/index.js",
+    "git-custom-push": "bin/index.js"
   },
   "scripts": {
     "start": "node bin/index.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "keywords": [
     "git",

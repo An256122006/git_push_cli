@@ -1,57 +1,134 @@
-# 🚀 Git Push Time / GitHub CLI (`git-push-time`)
+# 🚀 Git Push Time & GitHub CLI (`git-push-time`)
 
-Một công cụ Dòng lệnh (CLI) mạnh mẽ và tiện lợi giúp bạn **đẩy dự án lên Git (GitHub, GitLab, Bitbucket,...) cực nhanh** chỉ bằng cách dán URL repo, đồng thời hỗ trợ **tùy chỉnh hoặc lùi thời gian commit/push** (Author Date & Committer Date).
+Một công cụ Dòng lệnh (CLI) mạnh mẽ, hiện đại và toàn diện giúp bạn **đẩy dự án lên Git siêu tốc**, **kết nối GitHub tạo Repository trực tiếp**, **tùy chỉnh lùi thời gian commit (Backdate)** và **tự động bảo vệ chống lộ Key/Secret (GitHub GH013)**.
 
 ---
 
 ## ✨ Tính năng nổi bật
 
-- 🔗 **Đẩy dự án siêu tốc**: Chỉ cần dán URL Git repository, công cụ tự động làm mọi thao tác `git init`, `git remote add/set-url`, `git add .`, `git commit`, `git push`.
+- 🐙 **Kết nối GitHub & Tạo Repository trực tiếp**:
+  - Tạo nhanh repository mới trên GitHub (Public / Private) chỉ trong 3 giây ngay trên terminal.
+  - Tự động liên kết remote và đẩy code của dự án lên repo mới vừa tạo.
+  - Hỗ trợ lưu trữ Personal Access Token (PAT) an toàn, tự nhận diện token từ `gh CLI` hoặc biến môi trường `GITHUB_TOKEN`.
+  - Xem thông tin tài khoản GitHub (Profile), danh sách repository cá nhân và chọn repo trực tiếp không cần copy-paste link.
+- ⚡ **Đẩy dự án siêu tốc**: Tự động hóa toàn bộ quy trình `git init`, `git remote`, `git add .`, `git commit`, `git push`.
 - ⏰ **Tùy chỉnh thời gian commit (Git Backdate)**:
-  - Lùi ngày/giờ bằng chuỗi ngắn gọn: `-2d` (2 ngày trước), `-5h` (5 giờ trước), `-1w` (1 tuần trước), `-30m` (30 phút trước).
-  - Hoặc nhập ngày giờ chuẩn chính xác: `2024-01-15 14:30:00`.
-  - Cập nhật cả `GIT_AUTHOR_DATE` và `GIT_COMMITTER_DATE` chuẩn mực.
-- 💬 **Chế độ Tương tác (Interactive Prompt)**: Giao diện trực quan đẹp mắt với câu hỏi từng bước.
-- ⚡ **Chế độ Lệnh nhanh (Command-line flags)**: Truyền tham số để đẩy code không cần bấm enter chọn lựa.
+  - Lùi ngày/giờ bằng cú pháp tự nhiên: `-2d` (2 ngày trước), `-5h` (5 giờ trước), `-1w` (1 tuần trước), `-30m` (30 phút trước).
+  - Hoặc nhập mốc thời gian cụ thể: `2024-01-15 14:30:00`.
+  - Ghi chuẩn xác cả `GIT_AUTHOR_DATE` và `GIT_COMMITTER_DATE`.
+- 🛡️ **Zero-Leak Secret Shield**:
+  - Quét trước các file nhạy cảm (`.env`, `.npmrc`, private keys, API keys).
+  - Tự động gỡ khỏi stage và bổ sung vào `.gitignore` an toàn mà không làm mất file trên máy của bạn.
+  - Tự động squash làm sạch lịch sử unpushed nếu từng vô tình commit key bí mật.
+- 🎨 **Giao diện Terminal UI hiện đại**:
+  - Thiết kế Dashboard trực quan hiển thị thư mục, branch, trạng thái GitHub.
+  - Hỗ trợ nút `« Quay lại` ở tất cả các bước (hoặc gõ `..`).
+  - Hộp thoại màu sắc chuẩn Cyberpunk / DevTools sắc nét, không dùng emoji dư thừa.
 
 ---
 
-## 📦 Cài đặt từ NPM
+## 📦 Cài đặt
 
-### Cách 1: Cài đặt toàn cục (Recommended)
+### Cách 1: Cài đặt toàn cục (Khuyên dùng)
 ```bash
 npm install -g git-push-time
 ```
-Sau khi cài đặt, bạn có thể gọi lệnh `git-push-time`, `githubcli` hoặc `git-custom-push` ở **bất kỳ thư mục dự án nào** trên máy tính!
+Sau khi cài đặt, bạn có thể gọi lệnh `git-push-time`, `githubcli` hoặc `git-custom-push` ở bất kỳ thư mục nào!
 
-### Cách 2: Chạy trực tiếp qua `npx`
+### Cách 2: Chạy trực tiếp với `npx`
 ```bash
 npx git-push-time
 ```
 
 ---
 
-## 🛠️ Hướng dẫn sử dụng
+## 🧭 Quy trình hoạt động (Workflow)
 
-### 1. Chế độ tương tác (Interactive Mode)
-Chỉ cần mở Terminal tại thư mục dự án của bạn và gõ:
-```bash
+```text
+git-push-time github login
+        │
+        ▼
+🌐 GitHub Login (OAuth Device Flow / Personal Access Token)
+        │
+        ▼
+🔑 Mở trình duyệt xác nhận mã User Code & Cấp quyền
+        │
+        ▼
+✅ Đăng nhập thành công!
+        │
+        ▼
 git-push-time
+        │
+        ├── 📁 1. Chọn folder project
+        │
+        ├── 👤 2. Chọn GitHub account
+        │
+        ├── 📦 3. Chọn repository (chọn có sẵn / tạo mới trực tiếp / dán URL)
+        │
+        ├── 🌿 4. Chọn branch
+        │
+        ├── 💬 5. Nhập commit message
+        │
+        ├── ⏰ 6. Chọn commit time (ngay bây giờ / backdate lùi giờ / ngày cụ thể)
+        │
+        └── 🚀 7. Push (quét secret, commit & đẩy lên remote)
 ```
-Công cụ sẽ hiển thị từng câu hỏi giao diện để bạn dán link repo, nhập commit message và chọn thời gian:
-1. **Dán Link Repo**: `https://github.com/username/repository.git`
-2. **Commit Message**: `Initial commit`
-3. **Chọn thời gian**:
-   - ⏰ *Ngay bây giờ*
-   - ⏳ *Lùi thời gian* (VD: `-2d` là 2 ngày trước)
-   - 📅 *Nhập ngày giờ cụ thể* (VD: `2024-05-20 09:15:00`)
-4. **Tên Branch**: `main`
-5. **Xác nhận**: Có / Không.
 
 ---
 
-### 2. Chế độ dòng lệnh nhanh (Command Line Flags)
-Đẩy dự án với thông số truyền trực tiếp:
+## 🛠️ Hướng dẫn sử dụng
+
+### 1. Bảng điều khiển tương tác (Interactive Dashboard)
+Mở terminal tại thư mục dự án và chạy:
+```bash
+git-push-time
+```
+Menu tương tác chính sẽ xuất hiện với các phân mục rõ ràng:
+- `» [PUSH]    | Đẩy code lên Git (kèm chọn folder, backdate & chống lộ secret)`
+- `» [GITHUB]  | Quản lý GitHub & Tạo repository mới`
+- `» [PULL]    | Cập nhật code mới về máy (Fast-forward / Rebase)`
+- `» [TIME]    | Sửa thời gian commit lịch sử`
+- `» [FIX]     | Quét & gỡ sạch secret khỏi repo`
+- `x [THOÁT]   | Kết thúc chương trình`
+
+---
+
+### 2. Tính năng GitHub & Tạo Repository
+
+#### Tạo Repository mới trên GitHub ngay lập tức:
+```bash
+git-push-time github create
+```
+Hệ thống sẽ hỏi bạn:
+1. **Tên Repository** (Mặc định tự lấy theo tên folder hiện tại).
+2. **Mô tả dự án**.
+3. **Quyền riêng tư**: Public hoặc Private.
+4. **Hỏi đẩy code ngay**: Nếu chọn Có, CLI sẽ tự động liên kết remote và đẩy toàn bộ source code của bạn lên repo vừa tạo!
+
+#### Xem thông tin tài khoản GitHub đang kết nối:
+```bash
+git-push-time github whoami
+```
+
+#### Liệt kê các Repository trên tài khoản GitHub của bạn:
+```bash
+git-push-time github repos
+```
+
+#### Đăng nhập bằng Personal Access Token (PAT):
+```bash
+git-push-time github login
+```
+*(Token cần có quyền `repo` để tạo và quản lý repository)*.
+
+#### Đăng xuất:
+```bash
+git-push-time github logout
+```
+
+---
+
+### 3. Đẩy dự án bằng tham số dòng lệnh (Command Line Flags)
 
 #### Ví dụ 1: Lùi thời gian commit 2 ngày trước
 ```bash
@@ -63,9 +140,33 @@ git-push-time -r https://github.com/username/my-repo.git -d "-2d" -m "Initial co
 git-push-time -r https://github.com/username/my-repo.git -d "2024-01-15 14:30:00" -m "Add core features"
 ```
 
-#### Ví dụ 3: Đẩy tự động không hỏi lại (-y) và force push (-f)
+#### Ví dụ 3: Đẩy tự động không hỏi lại (-y) và tự gỡ secret (--fix)
 ```bash
-git-push-time -r https://github.com/username/my-repo.git -d "-5h" -m "Update docs" -b main -f -y
+git-push-time -r https://github.com/username/my-repo.git -d "-5h" -m "Update docs" -b main -y --fix
+```
+
+#### Ví dụ 4: Chỉ push đúng 1 thư mục con (khi đứng ở thư mục gốc ngoài cùng)
+```bash
+git-push-time -r https://github.com/username/my-repo.git -m "Init" --dir ./my-app -y
+```
+
+---
+
+### 4. Các lệnh độc lập khác
+
+#### Quét và tự động làm sạch Secret:
+```bash
+git-push-time fix
+```
+
+#### Cập nhật code mới từ remote:
+```bash
+git-push-time pull
+```
+
+#### Sửa đổi thời gian commit cũ trong lịch sử:
+```bash
+git-push-time edit-time
 ```
 
 ---
@@ -77,35 +178,38 @@ git-push-time -r https://github.com/username/my-repo.git -d "-5h" -m "Update doc
 | `now` hoặc để trống | Thời gian hiện tại |
 | `-2d` hoặc `2d` | Lùi lại 2 ngày |
 | `-5h` hoặc `5h` | Lùi lại 5 giờ |
-| `-30m` hoặc `30m` | Lùi lại 30 phút |
+| `-30m` hoặc `30m` | Lùi lại 30 phút (m = minute) |
 | `-1w` hoặc `1w` | Lùi lại 1 tuần |
-| `-3m` | Lùi lại 3 tháng |
+| `-3M` / `-3mo` / `-3month` | Lùi lại 3 tháng (M = month, phân biệt hoa/thường với m = minute) |
 | `2024-01-15 14:30:00` | Ngày 15/01/2024 lúc 14 giờ 30 phút |
 | `2024-01-15` | Ngày 15/01/2024 |
 
 ---
 
-- `-r, --repo <url>`: Link Git Repository (VD: `https://github.com/user/repo.git`)
-- `-d, --date <datetime>`: Thời gian commit (`now`, `-2d`, `2024-01-15 10:30:00`,...)
-- `-m, --message <msg>`: Thông điệp commit (Mặc định: `Initial commit`)
-- `-b, --branch <branch>`: Tên branch (Mặc định: `main`)
-- `-f, --force`: Đẩy đè lên branch remote (`--force`)
-- `-y, --yes`: Tự động xác nhận, không hiện prompt chọn
-- `--fix`: Tự động gỡ file secret (.env, .npmrc...) khỏi stage và thêm vào `.gitignore`
-- `--publish`: Publish package lên npm sau khi push Git thành công
-- `-h, --help`: Hướng dẫn trợ giúp
+## 🏛️ Cấu trúc mã nguồn
 
-### 🛠️ Lệnh Fix Secret Độc Lập
-Nếu phát hiện repo bị dính secret hoặc GitHub Push Protection (GH013) chặn push, bạn có thể chạy ngay lệnh fix:
-```bash
-git-push-time fix
 ```
-Lệnh sẽ tự động:
-1. Quét vùng stage và thư mục làm việc để tìm file cấu hình nhạy cảm (`.env`, `.npmrc`, keys...).
-2. Gỡ file khỏi stage và thêm rule an toàn vào `.gitignore`.
-3. Kiểm tra các commit chưa push (unpushed) dính secret cũ và hỗ trợ tự động squash thành commit sạch để GitHub cho phép push.
+cli/
+├── bin/
+│   └── index.js             # CLI Entrypoint & Commander Dispatcher
+├── lib/
+│   ├── config.js            # Quản lý config & GitHub Token local
+│   ├── github.js            # Tương tác GitHub REST API (verify, repos, create)
+│   ├── git.js               # Các tác vụ Git cốt lõi
+│   ├── secrets.js           # Quét phát hiện secret trong code & stage
+│   ├── fix.js               # Thuật toán gỡ secret & squash unpushed
+│   ├── utils.js             # Validate url & parse custom datetime
+│   ├── prompt-helpers.js    # Interactive prompt helpers có nút Back '..'
+│   ├── ui.js                # Design System: Banner, Dashboard, Box & Badges
+│   └── commands/
+│       ├── push.js          # Wizard push thông minh tích hợp GitHub
+│       ├── github.js        # Lệnh & Menu quản lý GitHub / Tạo repo
+│       ├── pull.js          # Lệnh pull code (--ff-only, --rebase)
+│       ├── edit-time.js     # Lệnh sửa thời gian commit lịch sử
+│       └── fix.js           # Lệnh quét & sửa secret độc lập
+```
 
 ---
 
-## 📜 Giấy phép
-MIT License.
+## 📄 License
+Phát hành theo giấy phép **MIT**.
